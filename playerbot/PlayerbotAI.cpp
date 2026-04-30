@@ -1199,8 +1199,39 @@ void PlayerbotAI::UpdateAIInternal(uint32 elapsed, bool minimal)
     botOutgoingPacketHandlers.Handle(helper);
     masterIncomingPacketHandlers.Handle(helper);
     masterOutgoingPacketHandlers.Handle(helper);
+    UpdateDebugStateSql();
 
 	DoNextAction(minimal);
+}
+
+void PlayerbotAI::UpdateDebugStateSql()
+{
+    if (time(0) - debugStateSqlLastSaveTime < 15)
+        return;
+
+    std::ostringstream out;
+    out << "action=" << currentEngine->GetLastAction();
+
+    TravelTarget* target = GetAiObjectContext()->GetValue<TravelTarget*>("travel target")->Get();
+    if (target && target->GetDestination())
+    {
+        out << "; travel=" << target->GetDestination()->GetTitle();
+        out << "; travel_status=";
+        switch (target->GetStatus())
+        {
+            case TravelStatus::TRAVEL_STATUS_READY: out << "ready"; break;
+            case TravelStatus::TRAVEL_STATUS_PREPARE: out << "prepare"; break;
+            case TravelStatus::TRAVEL_STATUS_TRAVEL: out << "travel"; break;
+            case TravelStatus::TRAVEL_STATUS_WORK: out << "work"; break;
+            case TravelStatus::TRAVEL_STATUS_COOLDOWN: out << "cooldown"; break;
+            case TravelStatus::TRAVEL_STATUS_EXPIRED: out << "expired"; break;
+            default: out << "none"; break;
+        }
+    }
+
+    lastDebugStateSnapshot = out.str();
+    sPlayerbotDbStore.SaveSingleValue(bot->GetObjectGuid().GetRawValue(), "debug_state", "state", lastDebugStateSnapshot);
+    debugStateSqlLastSaveTime = time(0);
 }
 
 void PlayerbotAI::HandleTeleportAck()
@@ -1426,6 +1457,16 @@ void PlayerbotAI::HandleCommand(uint32 type, const std::string& text, Player& fr
     filtered = chatFilter.Filter(trim((std::string&)filtered));
     if (filtered.empty())
         return;
+
+    if (filtered == "status" || filtered == "bot status")
+    {
+        if (lastDebugStateSnapshot.empty())
+            UpdateDebugStateSql();
+
+        std::string response = "Status: " + (lastDebugStateSnapshot.empty() ? std::string("No state recorded yet") : lastDebugStateSnapshot);
+        TellPlayerNoFacing(&fromPlayer, response, PlayerbotSecurityLevel::PLAYERBOT_SECURITY_ALLOW_ALL, true, false);
+        return;
+    }
 
     if (filtered.substr(0, 6) == "debug ")
     {
