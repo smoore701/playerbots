@@ -82,3 +82,10 @@ void PlayerbotDbStore::SaveValue(uint64 guid, std::string preset, std::string ke
 {
     CharacterDatabase.PExecute("INSERT INTO `ai_playerbot_db_store` (`guid`, `preset`, `key`, `value`) VALUES ('%lu', '%s', '%s', '%s')", guid, preset.c_str(), key.c_str(), value.c_str());
 }
+
+void PlayerbotDbStore::SaveSingleValue(uint64 guid, std::string preset, std::string key, std::string value)
+{
+    CharacterDatabase.escape_string(value);
+    CharacterDatabase.PExecute("DELETE FROM `ai_playerbot_db_store` WHERE `guid` = '%lu' AND `preset` = '%s' AND `key` = '%s'", guid, preset.c_str(), key.c_str());
+    CharacterDatabase.PExecute("INSERT INTO `ai_playerbot_db_store` (`guid`, `preset`, `key`, `value`) VALUES ('%lu', '%s', '%s', '%s')", guid, preset.c_str(), key.c_str(), value.c_str());
+}
