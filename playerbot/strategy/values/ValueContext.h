@@ -78,6 +78,7 @@
 #include "QuestValues.h"
 #include "BudgetValues.h"
 #include "MaintenanceValues.h"
+#include "BankValues.h"
 #include "GroupValues.h"
 #include "GuildValues.h"
 #include "TradeValues.h"
@@ -351,6 +352,12 @@ namespace ai
             creators["should ah sell"] = [](PlayerbotAI* ai) { return new ShouldAHSellValue(ai); };
             creators["can ah sell"] = [](PlayerbotAI* ai) { return new CanAHSellValue(ai); };
             creators["can ah buy"] = [](PlayerbotAI* ai) { return new CanAHBuyValue(ai); };
+            creators["should bank deposit"] = [](PlayerbotAI* ai) { return new ShouldBankDepositValue(ai); };
+            creators["should bank withdraw"] = [](PlayerbotAI* ai) { return new ShouldBankWithdrawValue(ai); };
+#ifndef MANGOSBOT_ZERO
+            creators["should guild bank deposit"] = [](PlayerbotAI* ai) { return new ShouldGuildBankDepositValue(ai); };
+            creators["should guild bank withdraw"] = [](PlayerbotAI* ai) { return new ShouldGuildBankWithdrawValue(ai); };
+#endif
             creators["can get mail"] = [](PlayerbotAI* ai) { return new CanGetMailValue(ai); };
             creators["should get mail"] = [](PlayerbotAI* ai) { return new ShouldGetMailValue(ai); };
             creators["can fight equal"] = [](PlayerbotAI* ai) { return new CanFightEqualValue(ai); };

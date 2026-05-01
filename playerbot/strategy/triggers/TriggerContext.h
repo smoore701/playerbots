@@ -273,6 +273,12 @@ namespace ai
             creators["rpg duel"] = [](PlayerbotAI* ai) { return new RpgDuelTrigger(ai); };
             creators["rpg item"] = [](PlayerbotAI* ai) { return new RpgItemTrigger(ai); };
             creators["rpg gossip talk"] = [](PlayerbotAI* ai) { return new RpgGossipTalkTrigger(ai); };
+            creators["rpg bank deposit"] = [](PlayerbotAI* ai) { return new RpgBankDepositTrigger(ai); };
+            creators["rpg bank withdraw"] = [](PlayerbotAI* ai) { return new RpgBankWithdrawTrigger(ai); };
+#ifndef MANGOSBOT_ZERO
+            creators["rpg guild bank deposit"] = [](PlayerbotAI* ai) { return new RpgGuildBankDepositTrigger(ai); };
+            creators["rpg guild bank withdraw"] = [](PlayerbotAI* ai) { return new RpgGuildBankWithdrawTrigger(ai); };
+#endif
 
             creators["random jump"] = [](PlayerbotAI* ai) { return new RandomJumpTrigger(ai); };
             creators["rtsc jump active"] = [](PlayerbotAI* ai) { return new RtscJumpTrigger(ai); };

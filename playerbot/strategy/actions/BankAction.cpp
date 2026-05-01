@@ -2,6 +2,7 @@
 #include "playerbot/playerbot.h"
 #include "BankAction.h"
 #include "playerbot/strategy/values/ItemCountValue.h"
+#include "playerbot/strategy/values/ItemUsageValue.h"
 
 using namespace ai;
 
@@ -184,4 +185,113 @@ Item* BankAction::FindItemInBank(uint32 ItemId)
     }
 
     return NULL;
+}
+
+bool BankAction::AutoDeposit()
+{
+    bool deposited = false;
+
+    // Deposit items tagged for banking (future equip or future craft)
+    for (uint8 usageType : {(uint8)ItemUsage::ITEM_USAGE_BANK_EQUIP, (uint8)ItemUsage::ITEM_USAGE_BANK_CRAFT})
+    {
+        std::list<Item*> items = AI_VALUE2(std::list<Item*>, "inventory items", "usage " + std::to_string(usageType));
+        for (auto item : items)
+        {
+            if (!item)
+                continue;
+
+            // Don't bank items needed for guild orders
+            ItemQualifier qualifier(item);
+            std::string qualStr = qualifier.GetQualifier();
+            ItemUsage currentUsage = AI_VALUE2(ItemUsage, "item usage", qualStr);
+            if (currentUsage == ItemUsage::ITEM_USAGE_GUILD_TASK)
+                continue;
+
+            ItemPosCountVec dest;
+            InventoryResult msg = bot->CanBankItem(NULL_BAG, NULL_SLOT, dest, item, false);
+            if (msg != EQUIP_ERR_OK)
+                continue;
+
+            bot->RemoveItem(item->GetBagSlot(), item->GetSlot(), true);
+            bot->BankItem(dest, item, true);
+            deposited = true;
+        }
+    }
+
+    return deposited;
+}
+
+bool BankAction::AutoWithdraw()
+{
+    bool withdrew = false;
+
+    if (AI_VALUE(uint8, "bag space") > 80)
+        return false;
+
+    auto checkAndWithdraw = [&](Item* pItem) -> bool
+    {
+        if (!pItem)
+            return false;
+
+        ItemPrototype const* proto = pItem->GetProto();
+        if (!proto)
+            return false;
+
+        bool shouldWithdraw = false;
+
+        // Check if item is now equippable
+        if (proto->InventoryType != INVTYPE_NON_EQUIP && proto->RequiredLevel <= bot->GetLevel()
+            && bot->CanUseItem(proto) == EQUIP_ERR_OK)
+        {
+            ItemQualifier qualifier(pItem);
+            ItemUsage equipUsage = ItemUsageValue::QueryItemUsageForEquip(qualifier, bot);
+            if (equipUsage == ItemUsage::ITEM_USAGE_EQUIP || equipUsage == ItemUsage::ITEM_USAGE_BAD_EQUIP)
+                shouldWithdraw = true;
+        }
+
+        // Check if item is now needed for crafting
+        if (!shouldWithdraw && (proto->Class == ITEM_CLASS_TRADE_GOODS || proto->Class == ITEM_CLASS_MISC || proto->Class == ITEM_CLASS_REAGENT))
+        {
+            ItemQualifier qualifier(pItem);
+            std::string qualStr = qualifier.GetQualifier();
+            ItemUsage usage = AI_VALUE2(ItemUsage, "item usage", qualStr);
+            if (usage == ItemUsage::ITEM_USAGE_SKILL)
+                shouldWithdraw = true;
+        }
+
+        if (!shouldWithdraw)
+            return false;
+
+        ItemPosCountVec dest;
+        InventoryResult msg = bot->CanStoreItem(NULL_BAG, NULL_SLOT, dest, pItem, false);
+        if (msg != EQUIP_ERR_OK)
+            return false;
+
+        bot->RemoveItem(pItem->GetBagSlot(), pItem->GetSlot(), true);
+        bot->StoreItem(dest, pItem, true);
+        return true;
+    };
+
+    // Check main bank slots
+    for (int i = BANK_SLOT_ITEM_START; i < BANK_SLOT_ITEM_END; ++i)
+    {
+        if (checkAndWithdraw(bot->GetItemByPos(INVENTORY_SLOT_BAG_0, i)))
+            withdrew = true;
+    }
+
+    // Check bank bags
+    for (int bag = BANK_SLOT_BAG_START; bag < BANK_SLOT_BAG_END; ++bag)
+    {
+        Bag* pBag = (Bag*)bot->GetItemByPos(INVENTORY_SLOT_BAG_0, bag);
+        if (!pBag)
+            continue;
+
+        for (uint32 slot = 0; slot < pBag->GetBagSize(); ++slot)
+        {
+            if (checkAndWithdraw(pBag->GetItemByPos(slot)))
+                withdrew = true;
+        }
+    }
+
+    return withdrew;
 }
