@@ -1199,8 +1199,39 @@ void PlayerbotAI::UpdateAIInternal(uint32 elapsed, bool minimal)
     botOutgoingPacketHandlers.Handle(helper);
     masterIncomingPacketHandlers.Handle(helper);
     masterOutgoingPacketHandlers.Handle(helper);
+    UpdateDebugStateSql();
 
 	DoNextAction(minimal);
+}
+
+void PlayerbotAI::UpdateDebugStateSql()
+{
+    if (time(0) - debugStateSqlLastSaveTime < 15)
+        return;
+
+    std::ostringstream out;
+    out << "action=" << currentEngine->GetLastAction();
+
+    TravelTarget* target = GetAiObjectContext()->GetValue<TravelTarget*>("travel target")->Get();
+    if (target && target->GetDestination())
+    {
+        out << "; travel=" << target->GetDestination()->GetTitle();
+        out << "; travel_status=";
+        switch (target->GetStatus())
+        {
+            case TravelStatus::TRAVEL_STATUS_READY: out << "ready"; break;
+            case TravelStatus::TRAVEL_STATUS_PREPARE: out << "prepare"; break;
+            case TravelStatus::TRAVEL_STATUS_TRAVEL: out << "travel"; break;
+            case TravelStatus::TRAVEL_STATUS_WORK: out << "work"; break;
+            case TravelStatus::TRAVEL_STATUS_COOLDOWN: out << "cooldown"; break;
+            case TravelStatus::TRAVEL_STATUS_EXPIRED: out << "expired"; break;
+            default: out << "none"; break;
+        }
+    }
+
+    lastDebugStateSnapshot = out.str();
+    sPlayerbotDbStore.SaveSingleValue(bot->GetObjectGuid().GetRawValue(), "debug_state", "state", lastDebugStateSnapshot);
+    debugStateSqlLastSaveTime = time(0);
 }
 
 void PlayerbotAI::HandleTeleportAck()
@@ -1354,6 +1385,13 @@ bool PlayerbotAI::IsAllowedCommand(std::string text)
         unsecuredCommands.insert("lfg");
         unsecuredCommands.insert("guild invite");
         unsecuredCommands.insert("guild leave");
+        unsecuredCommands.insert("status");
+        unsecuredCommands.insert("status ?");
+        unsecuredCommands.insert("bot status");
+        unsecuredCommands.insert("bot status ?");
+        unsecuredCommands.insert("status log");
+        unsecuredCommands.insert("do quests");
+        unsecuredCommands.insert("turn in quests");
     }
 
     for (std::set<std::string>::iterator i = unsecuredCommands.begin(); i != unsecuredCommands.end(); ++i)
@@ -1426,6 +1464,52 @@ void PlayerbotAI::HandleCommand(uint32 type, const std::string& text, Player& fr
     filtered = chatFilter.Filter(trim((std::string&)filtered));
     if (filtered.empty())
         return;
+
+    if (filtered == "status" || filtered == "status ?" || filtered == "bot status" || filtered == "bot status ?")
+    {
+        if (lastDebugStateSnapshot.empty())
+            UpdateDebugStateSql();
+
+        if (lastDebugStateSnapshot.empty())
+        {
+            lastDebugStateSnapshot = sPlayerbotDbStore.GetSingleValue(bot->GetObjectGuid().GetRawValue(), "debug_state", "state");
+        }
+
+        std::string response = "Status: " + (lastDebugStateSnapshot.empty() ? std::string("No state recorded yet") : lastDebugStateSnapshot);
+        TellPlayerNoFacing(&fromPlayer, response, PlayerbotSecurityLevel::PLAYERBOT_SECURITY_ALLOW_ALL, true, false);
+        return;
+    }
+    else if (filtered.find("status log ") == 0)
+    {
+        std::string qualifier = trim(filtered.substr(11));
+        if (qualifier.empty())
+            qualifier = "default";
+
+        if (lastDebugStateSnapshot.empty())
+            UpdateDebugStateSql();
+        if (lastDebugStateSnapshot.empty())
+            lastDebugStateSnapshot = sPlayerbotDbStore.GetSingleValue(bot->GetObjectGuid().GetRawValue(), "debug_state", "state");
+
+        std::string fileName = "bot_status_" + qualifier + ".csv";
+        if (!sPlayerbotAIConfig.isLogOpen(fileName))
+            sPlayerbotAIConfig.openLog(fileName, "a", true);
+
+        std::ostringstream out;
+        out << sPlayerbotAIConfig.GetTimestampStr() << "+00,"
+            << bot->GetName() << ","
+            << (lastDebugStateSnapshot.empty() ? "No state recorded yet" : lastDebugStateSnapshot);
+        sPlayerbotAIConfig.log(fileName, out.str().c_str());
+
+        TellPlayerNoFacing(&fromPlayer, "Status logged to " + fileName, PlayerbotSecurityLevel::PLAYERBOT_SECURITY_ALLOW_ALL, true, false);
+        return;
+    }
+    else if (filtered == "do quests" || filtered == "turn in quests")
+    {
+        ChangeStrategy("+quest", BotState::BOT_STATE_NON_COMBAT);
+        ChangeStrategy("+rpg quest,+travel", BotState::BOT_STATE_NON_COMBAT);
+        TellPlayerNoFacing(&fromPlayer, "Quest focus enabled: using quest, rpg quest and travel strategies.");
+        return;
+    }
 
     if (filtered.substr(0, 6) == "debug ")
     {
