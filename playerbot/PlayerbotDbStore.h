@@ -19,6 +19,8 @@ public:
     void Save(PlayerbotAI *ai, std::string preset = "");
     void Load(PlayerbotAI *ai, std::string preset = "");
     void Reset(PlayerbotAI *ai, std::string preset = "");
+    void SaveSingleValue(uint64 guid, std::string preset, std::string key, std::string value);
+    std::string GetSingleValue(uint64 guid, std::string preset, std::string key);
 
 private:
     void SaveValue(uint64 guid, std::string preset, std::string key, std::string value);
