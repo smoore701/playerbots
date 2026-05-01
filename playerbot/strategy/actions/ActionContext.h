@@ -50,6 +50,7 @@
 #include "ResetInstancesAction.h"
 #include "BuyAction.h"
 #include "GuildCreateActions.h"
+#include "BuyGuildBankTabAction.h"
 #include "GuildManagementActions.h"
 #include "GuildAcceptAction.h"
 #include "GuildAcceptQuestOrderAction.h"
@@ -223,6 +224,9 @@ namespace ai
             creators["offer petition nearby"] = [](PlayerbotAI* ai) { return new PetitionOfferNearbyAction(ai); };
             creators["turn in petition"] = [](PlayerbotAI* ai) { return new PetitionTurnInAction(ai); };
             creators["buy tabard"] = [](PlayerbotAI* ai) { return new BuyTabardAction(ai); };
+#ifndef MANGOSBOT_ZERO
+            creators["buy guild bank tab"] = [](PlayerbotAI* ai) { return new BuyGuildBankTabAction(ai); };
+#endif
             creators["guild manage nearby"] = [](PlayerbotAI* ai) { return new GuildManageNearbyAction(ai); };
             creators["guild share item"] = [](PlayerbotAI* ai) { return new GuildShareItemAction(ai); };
             creators["guild ah buy"] = [](PlayerbotAI* ai) { return new GuildShareAhBuyAction(ai); };
@@ -318,6 +322,12 @@ namespace ai
             creators["rpg duel"] = [](PlayerbotAI* ai) { return new RpgDuelAction(ai); };
             creators["rpg item"] = [](PlayerbotAI* ai) { return new RpgItemAction(ai); };
             creators["rpg gossip talk"] = [](PlayerbotAI* ai) { return new RpgGossipTalkAction(ai); };
+            creators["rpg bank deposit"] = [](PlayerbotAI* ai) { return new RpgBankDepositAction(ai); };
+            creators["rpg bank withdraw"] = [](PlayerbotAI* ai) { return new RpgBankWithdrawAction(ai); };
+#ifndef MANGOSBOT_ZERO
+            creators["rpg guild bank deposit"] = [](PlayerbotAI* ai) { return new RpgGuildBankDepositAction(ai); };
+            creators["rpg guild bank withdraw"] = [](PlayerbotAI* ai) { return new RpgGuildBankWithdrawAction(ai); };
+#endif
 
             creators["auto set glyph"] = [](PlayerbotAI* ai) { return new AutoSetGlyphAction(ai); };
             creators["auto complete quest"] = [](PlayerbotAI* ai) { return new AutoCompleteQuestAction(ai); };

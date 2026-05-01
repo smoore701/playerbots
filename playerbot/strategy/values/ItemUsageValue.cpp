@@ -424,6 +424,16 @@ if ((proto->Class == ITEM_CLASS_PROJECTILE ||
     if (proto->Quality >= ITEM_QUALITY_EPIC && sPlayerbotAIConfig.botsSaveEpics && !sRandomPlayerbotMgr.IsRandomBot(bot))
         return ItemUsage::ITEM_USAGE_KEEP;
 
+    //BANK - items for future use
+    if (!ai->HasActivePlayerMaster() && sRandomPlayerbotMgr.IsFreeBot(bot))
+    {
+        if (IsItemUsefulForFutureEquip(proto))
+            return ItemUsage::ITEM_USAGE_BANK_EQUIP;
+
+        if (IsItemUsefulForFutureCraft(proto))
+            return ItemUsage::ITEM_USAGE_BANK_CRAFT;
+    }
+
     if (proto->Class == ItemClass::ITEM_CLASS_CONSUMABLE)
     {
         uint8 maxExpansionCharacterLevel = 60;
@@ -830,6 +840,10 @@ std::string ItemUsageValue::ReasonForNeed(ItemUsage usage, ItemQualifier qualifi
     case ItemUsage::ITEM_USAGE_FORCE_NEED:
     case ItemUsage::ITEM_USAGE_FORCE_GREED:
         return BOT_TEXT2("because I was told to get this item.", placeholders);
+    case ItemUsage::ITEM_USAGE_BANK_EQUIP:
+        return BOT_TEXT2("to bank for future equipping.", placeholders);
+    case ItemUsage::ITEM_USAGE_BANK_CRAFT:
+        return BOT_TEXT2("to bank for future crafting.", placeholders);
     }
 
     return "";
@@ -1918,4 +1932,63 @@ uint32 ItemUsageValue::DesiredPricePerItem(Player* bot, const ItemPrototype* pro
     desiredPricePerItem = std::max(minAhPrice, desiredPricePerItem);
 
     return desiredPricePerItem;
+}
+
+bool ItemUsageValue::IsItemUsefulForFutureEquip(ItemPrototype const* proto)
+{
+    if (proto->InventoryType == INVTYPE_NON_EQUIP)
+        return false;
+
+    if (proto->Quality < ITEM_QUALITY_UNCOMMON)
+        return false;
+
+    if (proto->Bonding == BIND_WHEN_PICKED_UP)
+        return false;
+
+    if (proto->RequiredLevel <= bot->GetLevel())
+        return false;
+
+    if (proto->RequiredLevel > bot->GetLevel() + 10)
+        return false;
+
+    if (bot->CanUseItem(proto) == EQUIP_ERR_OK)
+        return false; // can already use, should be handled by equip logic
+
+    // Check class restriction
+    if (proto->AllowableClass && !(proto->AllowableClass & bot->getClassMask()))
+        return false;
+
+    // Check race restriction
+    if (proto->AllowableRace && !(proto->AllowableRace & bot->getRaceMask()))
+        return false;
+
+    return true;
+}
+
+bool ItemUsageValue::IsItemUsefulForFutureCraft(ItemPrototype const* proto)
+{
+    if (proto->Class != ITEM_CLASS_TRADE_GOODS && proto->Class != ITEM_CLASS_MISC && proto->Class != ITEM_CLASS_REAGENT)
+        return false;
+
+    if (proto->Quality < ITEM_QUALITY_NORMAL)
+        return false;
+
+    if (IsItemNeededForUsefullCraft(proto, false))
+        return false; // already needed now, handled by SKILL usage
+
+    // Check if this is a crafting reagent for any recipe the bot's professions use
+    if (!m_allReagentItemIdsForCraftingSkills.count(proto->ItemId))
+        return false;
+
+    // Check bot has a profession that uses this reagent
+    for (auto& [skillId, reagentSet] : m_reagentItemIdsForCraftingSkills)
+    {
+        if (!reagentSet.count(proto->ItemId))
+            continue;
+
+        if (bot->HasSkill(skillId))
+            return true;
+    }
+
+    return false;
 }

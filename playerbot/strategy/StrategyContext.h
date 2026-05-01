@@ -99,6 +99,7 @@ namespace ai
             creators["rpg explore"] = [](PlayerbotAI* ai) { return new RpgExploreStrategy(ai); };
             creators["rpg maintenance"] = [](PlayerbotAI* ai) { return new RpgMaintenanceStrategy(ai); };
             creators["rpg guild"] = [](PlayerbotAI* ai) { return new RpgGuildStrategy(ai); };
+            creators["rpg bank"] = [](PlayerbotAI* ai) { return new RpgBankStrategy(ai); };
             creators["rpg bg"] = [](PlayerbotAI* ai) { return new RpgBgStrategy(ai); };
             creators["rpg player"] = [](PlayerbotAI* ai) { return new RpgPlayerStrategy(ai); };
             creators["rpg craft"] = [](PlayerbotAI* ai) { return new RpgCraftStrategy(ai); };
