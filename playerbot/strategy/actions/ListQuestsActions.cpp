@@ -18,7 +18,11 @@ bool ListQuestsAction::Execute(Event& event)
     }
     else if (event.getParam() == "all")
     {
-        ListQuests(requester, QUEST_LIST_FILTER_ALL);
+        ListQuests(requester, QUEST_LIST_FILTER_ALL, QUEST_TRAVEL_DETAIL_SUMMARY);
+    }
+    else if (event.getParam() == "all full" || event.getParam() == "all verbose")
+    {
+        ListQuests(requester, QUEST_LIST_FILTER_ALL, QUEST_TRAVEL_DETAIL_FULL);
     }
     else if (event.getParam().find("travel") == 0)
     {
@@ -181,6 +185,27 @@ int ListQuestsAction::ListQuests(Player* requester, bool completed, bool silent,
             out << "] point: [";
             out << green << activePoints << "|r " << yellow << possiblePoints << "|r " << red << inpossiblePoints << "|r";
             out << "] dist: (" << minDistance << "y)";
+        }
+
+        if (travelDetail == QUEST_TRAVEL_DETAIL_FULL && !destinations.empty())
+        {
+            std::vector<std::pair<float, TravelDestination*>> rankedDestinations;
+            rankedDestinations.reserve(destinations.size());
+            for (auto& destination : destinations)
+                rankedDestinations.push_back({ destination->DistanceTo(bot), destination });
+
+            std::sort(rankedDestinations.begin(), rankedDestinations.end(),
+                [](const std::pair<float, TravelDestination*>& a, const std::pair<float, TravelDestination*>& b) { return a.first < b.first; });
+
+            out << " near: ";
+            size_t shown = 0;
+            for (const auto& [distance, destination] : rankedDestinations)
+            {
+                if (shown >= 3)
+                    break;
+                out << "[" << destination->GetTitle() << " " << uint32(distance) << "y]";
+                ++shown;
+            }
         }
 
         ai->TellPlayer(requester, out);

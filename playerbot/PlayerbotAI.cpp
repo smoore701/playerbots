@@ -1385,6 +1385,13 @@ bool PlayerbotAI::IsAllowedCommand(std::string text)
         unsecuredCommands.insert("lfg");
         unsecuredCommands.insert("guild invite");
         unsecuredCommands.insert("guild leave");
+        unsecuredCommands.insert("status");
+        unsecuredCommands.insert("status ?");
+        unsecuredCommands.insert("bot status");
+        unsecuredCommands.insert("bot status ?");
+        unsecuredCommands.insert("status log");
+        unsecuredCommands.insert("do quests");
+        unsecuredCommands.insert("turn in quests");
     }
 
     for (std::set<std::string>::iterator i = unsecuredCommands.begin(); i != unsecuredCommands.end(); ++i)
