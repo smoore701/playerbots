@@ -15,6 +15,8 @@ namespace ai
         virtual void InitCombatTriggers(std::list<TriggerNode*>& triggers) override { InitNonCombatTriggers(triggers); }
         virtual void InitDeadTriggers(std::list<TriggerNode*>& triggers) override { InitNonCombatTriggers(triggers); };
 
+
+        virtual void OnStrategyRemoved(BotState state);
 #ifdef GenerateBotHelp
         virtual std::string GetHelpName() { return "test"; }
         virtual std::string GetHelpDescription()

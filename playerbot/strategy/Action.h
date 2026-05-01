@@ -72,7 +72,7 @@ namespace ai
         virtual NextAction** getContinuers() { return NULL; }
         virtual ActionThreatType getThreatType() { return ActionThreatType::ACTION_THREAT_NONE; }
         void Update() {}  //Nonfunctional see AiObjectContext::Update() to enable.
-        void Reset() {}
+        virtual void Reset() {}
         virtual Unit* GetTarget();
         virtual Value<Unit*>* GetTargetValue();
         virtual std::string GetTargetName() { return "self target"; }

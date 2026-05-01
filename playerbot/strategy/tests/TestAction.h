@@ -18,6 +18,7 @@ namespace ai
         virtual bool isUseful() override { return true; }
         virtual bool isPossible() override { return bot && bot->IsAlive(); }
 
+        virtual void Reset() override { ctx.Reset(); }
 #ifdef GenerateBotHelp
         virtual std::string GetHelpName() { return "test"; }
         virtual std::string GetHelpDescription()
