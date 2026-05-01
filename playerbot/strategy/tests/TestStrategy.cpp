@@ -11,3 +11,14 @@ void TestStrategy::InitNonCombatTriggers(std::list<TriggerNode*>& triggers)
         "test ready",
         NextAction::array(0, new NextAction("test", 100.0f), NULL)));
 }
+
+void TestStrategy::OnStrategyRemoved(BotState state)
+{
+    AiObjectContext* context = ai->GetAiObjectContext();
+    Action* action = context->GetAction("test");
+
+    if (action)
+    {
+        action->Reset();
+    };
+}

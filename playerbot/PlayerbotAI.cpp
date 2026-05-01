@@ -1465,49 +1465,13 @@ void PlayerbotAI::HandleCommand(uint32 type, const std::string& text, Player& fr
     if (filtered.empty())
         return;
 
-    if (filtered == "status" || filtered == "status ?" || filtered == "bot status" || filtered == "bot status ?")
+    if (filtered == "status" || filtered == "bot status")
     {
         if (lastDebugStateSnapshot.empty())
             UpdateDebugStateSql();
-
-        if (lastDebugStateSnapshot.empty())
-        {
-            lastDebugStateSnapshot = sPlayerbotDbStore.GetSingleValue(bot->GetObjectGuid().GetRawValue(), "debug_state", "state");
-        }
 
         std::string response = "Status: " + (lastDebugStateSnapshot.empty() ? std::string("No state recorded yet") : lastDebugStateSnapshot);
         TellPlayerNoFacing(&fromPlayer, response, PlayerbotSecurityLevel::PLAYERBOT_SECURITY_ALLOW_ALL, true, false);
-        return;
-    }
-    else if (filtered.find("status log ") == 0)
-    {
-        std::string qualifier = trim(filtered.substr(11));
-        if (qualifier.empty())
-            qualifier = "default";
-
-        if (lastDebugStateSnapshot.empty())
-            UpdateDebugStateSql();
-        if (lastDebugStateSnapshot.empty())
-            lastDebugStateSnapshot = sPlayerbotDbStore.GetSingleValue(bot->GetObjectGuid().GetRawValue(), "debug_state", "state");
-
-        std::string fileName = "bot_status_" + qualifier + ".csv";
-        if (!sPlayerbotAIConfig.isLogOpen(fileName))
-            sPlayerbotAIConfig.openLog(fileName, "a", true);
-
-        std::ostringstream out;
-        out << sPlayerbotAIConfig.GetTimestampStr() << "+00,"
-            << bot->GetName() << ","
-            << (lastDebugStateSnapshot.empty() ? "No state recorded yet" : lastDebugStateSnapshot);
-        sPlayerbotAIConfig.log(fileName, out.str().c_str());
-
-        TellPlayerNoFacing(&fromPlayer, "Status logged to " + fileName, PlayerbotSecurityLevel::PLAYERBOT_SECURITY_ALLOW_ALL, true, false);
-        return;
-    }
-    else if (filtered == "do quests" || filtered == "turn in quests")
-    {
-        ChangeStrategy("+quest", BotState::BOT_STATE_NON_COMBAT);
-        ChangeStrategy("+rpg quest,+travel", BotState::BOT_STATE_NON_COMBAT);
-        TellPlayerNoFacing(&fromPlayer, "Quest focus enabled: using quest, rpg quest and travel strategies.");
         return;
     }
 

@@ -649,6 +649,20 @@ void RandomPlayerbotMgr::UpdateAIInternal(uint32 elapsed, bool minimal)
     if (!sPlayerbotAIConfig.randomBotAutologin || !sPlayerbotAIConfig.enabled)
         return;
 
+#ifdef GenerateBotTests
+    if (sPlayerbotAIConfig.startupRunTestsPending)
+    {
+        sPlayerbotAIConfig.startupRunTestsPending = false;
+
+        for (const std::string& runTestParam : sPlayerbotAIConfig.startupRunTests)
+        {
+            std::list<std::string> messages = HandlePlayerbotCommand("runtest " + runTestParam, nullptr, SEC_PLAYER);
+            for (const std::string& message : messages)
+                sLog.outString("[Config RunTest] %s", message.c_str());
+        }
+    }
+#endif
+
     if (!playersLevel)
         playersLevel = sPlayerbotAIConfig.syncLevelNoPlayer;
 

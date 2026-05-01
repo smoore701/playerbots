@@ -307,6 +307,58 @@ bool PlayerbotAIConfig::Initialize()
         loginCriteria.push_back({ "logoff,classrace,level" });
         loginCriteria.push_back({ "logoff,classrace" });
     }
+
+#ifdef GenerateBotTests
+    startupRunTests.clear();
+    startupRunTestsPending = false;
+
+    std::vector<std::string> runTestValues = configA->GetValues("AiPlayerbot.RunTest");
+    std::sort(runTestValues.begin(), runTestValues.end(), [](const std::string& left, const std::string& right)
+    {
+        auto readRunTestIndex = [](const std::string& key, uint32& index) -> bool
+        {
+            const size_t dotPos = key.find_last_of('.');
+            const std::string suffix = dotPos == std::string::npos ? key : key.substr(dotPos + 1);
+
+            if (suffix.find("runtest") != 0)
+                return false;
+
+            const std::string number = suffix.substr(7);
+            if (number.empty())
+                return false;
+
+            if (!std::all_of(number.begin(), number.end(), ::isdigit))
+                return false;
+
+            index = static_cast<uint32>(std::stoul(number));
+            return true;
+        };
+
+        uint32 leftIndex = 0;
+        uint32 rightIndex = 0;
+        const bool leftHasIndex = readRunTestIndex(left, leftIndex);
+        const bool rightHasIndex = readRunTestIndex(right, rightIndex);
+
+        if (leftHasIndex != rightHasIndex)
+            return leftHasIndex;
+
+        if (leftHasIndex && leftIndex != rightIndex)
+            return leftIndex < rightIndex;
+
+        return left < right;
+    });
+
+    for (const std::string& runTestKey : runTestValues)
+    {
+        std::string runTestParam = boost::algorithm::trim_copy(config.GetStringDefault(runTestKey, ""));
+        if (!runTestParam.empty())
+            startupRunTests.push_back(runTestParam);
+    }
+
+    startupRunTestsPending = !startupRunTests.empty();
+    if (startupRunTestsPending)
+        sLog.outString("Loaded %u startup runtest entries from config", static_cast<uint32>(startupRunTests.size()));
+#endif
     
 
     for (uint32 level = 1; level <= DEFAULT_MAX_LEVEL; ++level)
