@@ -1385,6 +1385,13 @@ bool PlayerbotAI::IsAllowedCommand(std::string text)
         unsecuredCommands.insert("lfg");
         unsecuredCommands.insert("guild invite");
         unsecuredCommands.insert("guild leave");
+        unsecuredCommands.insert("status");
+        unsecuredCommands.insert("status ?");
+        unsecuredCommands.insert("bot status");
+        unsecuredCommands.insert("bot status ?");
+        unsecuredCommands.insert("status log");
+        unsecuredCommands.insert("do quests");
+        unsecuredCommands.insert("turn in quests");
     }
 
     for (std::set<std::string>::iterator i = unsecuredCommands.begin(); i != unsecuredCommands.end(); ++i)
@@ -6510,6 +6517,40 @@ void PlayerbotAI::EnsureDefaultMovementStrategy(Player* requester)
 
 std::string PlayerbotAI::HandleRemoteCommand(std::string command)
 {
+    if (command == "status" || command == "status ?")
+    {
+        if (lastDebugStateSnapshot.empty())
+            UpdateDebugStateSql();
+
+        if (lastDebugStateSnapshot.empty())
+            lastDebugStateSnapshot = sPlayerbotDbStore.GetSingleValue(bot->GetObjectGuid().GetRawValue(), "debug_state", "state");
+
+        return lastDebugStateSnapshot.empty() ? "No state recorded yet" : lastDebugStateSnapshot;
+    }
+    else if (command.find("status log ") == 0)
+    {
+        std::string qualifier = trim(command.substr(11));
+        if (qualifier.empty())
+            qualifier = "default";
+
+        if (lastDebugStateSnapshot.empty())
+            UpdateDebugStateSql();
+        if (lastDebugStateSnapshot.empty())
+            lastDebugStateSnapshot = sPlayerbotDbStore.GetSingleValue(bot->GetObjectGuid().GetRawValue(), "debug_state", "state");
+
+        std::string fileName = "bot_status_" + qualifier + ".csv";
+        if (!sPlayerbotAIConfig.isLogOpen(fileName))
+            sPlayerbotAIConfig.openLog(fileName, "a", true);
+
+        std::ostringstream out;
+        out << sPlayerbotAIConfig.GetTimestampStr() << "+00,"
+            << bot->GetName() << ","
+            << (lastDebugStateSnapshot.empty() ? "No state recorded yet" : lastDebugStateSnapshot);
+        sPlayerbotAIConfig.log(fileName, out.str().c_str());
+
+        return "Status logged to " + fileName;
+    }
+
     if (command == "state")
     {
         switch (currentState)
